@@ -287,7 +287,9 @@ class CircadianLighting:
 
     def calc_colortemp(self):
         now: datetime = dt_util.as_local(dt_util.utcnow())
-        now_ts = now.timestamp()
+
+        if 22 < now.hour or 0 < now.hour < 6:
+            return 4000
 
         if 6 < now.hour < 8:
             start = now.replace(hour=6, minute=0, second=0)
@@ -297,14 +299,14 @@ class CircadianLighting:
         if 8 < now.hour < 17:
             start = now.replace(hour=8, minute=0, second=0)
             relative = int((now - start).seconds / 60)
-            return self._map(relative, 0, (17-8)*60, self._max_colortemp, self._min_colortemp)
+            return self._map(relative, 0, (17-8)*60, self._max_colortemp, self._min_colortemp - 2000)
 
         if 17 < now.hour < 20:
             start = now.replace(hour=17, minute=0, second=0)
             relative = int((now - start).seconds / 60)
-            return self._map(relative, 0, (20-17)*60, self._min_colortemp, self._max_colortemp)
+            return self._map(relative, 0, (20-17)*60, self._min_colortemp - 2000, self._min_colortemp)
 
-        if now.hour > 20:
+        if 20 < now.hour < 22:
             return self._min_colortemp
 
         if self._percent > 0:
