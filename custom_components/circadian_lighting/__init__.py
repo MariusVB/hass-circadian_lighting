@@ -29,34 +29,23 @@ Technical notes: I had to make a lot of assumptions when writing this app
 
 import bisect
 import logging
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 import astral
-import voluptuous as vol
-
 import homeassistant.helpers.config_validation as cv
 import homeassistant.util.dt as dt_util
+import voluptuous as vol
 from homeassistant.components.light import ATTR_TRANSITION, VALID_TRANSITION
-from homeassistant.const import (
-    CONF_ELEVATION,
-    CONF_LATITUDE,
-    CONF_LONGITUDE,
-    SUN_EVENT_SUNRISE,
-    SUN_EVENT_SUNSET,
-)
+from homeassistant.const import (CONF_ELEVATION, CONF_LATITUDE, CONF_LONGITUDE,
+                                 SUN_EVENT_SUNRISE, SUN_EVENT_SUNSET)
 from homeassistant.helpers.discovery import load_platform
 from homeassistant.helpers.dispatcher import async_dispatcher_send
-from homeassistant.helpers.event import (
-    async_track_sunrise,
-    async_track_sunset,
-    async_track_time_change,
-    async_track_time_interval,
-)
-from homeassistant.util.color import (
-    color_RGB_to_xy,
-    color_temperature_to_rgb,
-    color_xy_to_hs,
-)
+from homeassistant.helpers.event import (async_track_sunrise,
+                                         async_track_sunset,
+                                         async_track_time_change,
+                                         async_track_time_interval)
+from homeassistant.util.color import (color_RGB_to_xy,
+                                      color_temperature_to_rgb, color_xy_to_hs)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -198,12 +187,13 @@ class CircadianLighting:
             sunrise = self._replace_time(date, "sunrise")
             sunset = self._replace_time(date, "sunset")
             solar_noon = sunrise + (sunset - sunrise) / 2
-            solar_midnight = sunset + ((sunrise + timedelta(days=1)) - sunset) / 2
+            solar_midnight = sunset + \
+                ((sunrise + timedelta(days=1)) - sunset) / 2
         else:
             try:
-              location = astral.location.Location()
+                location = astral.location.Location()
             except AttributeError:
-              location = astral.Location()
+                location = astral.Location()
             location.name = "name"
             location.region = "region"
             location.latitude = self._latitude
@@ -221,13 +211,13 @@ class CircadianLighting:
                 sunset = location.sunset(date)
 
             try:
-              solar_noon = location.noon(date)
+                solar_noon = location.noon(date)
             except AttributeError:
-              solar_noon = location.solar_noon(date)
+                solar_noon = location.solar_noon(date)
             try:
-              solar_midnight = location.midnight(date)
+                solar_midnight = location.midnight(date)
             except AttributeError:
-              solar_midnight = location.solar_midnight(date)
+                solar_midnight = location.solar_midnight(date)
 
         if self._sunrise_offset is not None:
             sunrise = sunrise + self._sunrise_offset
@@ -252,7 +242,7 @@ class CircadianLighting:
             events.extend(list(sun_events.items()))
         events = sorted(events, key=lambda x: x[1])
         index_now = bisect.bisect([ts for _, ts in events], now.timestamp())
-        return dict(events[index_now - 2 : index_now + 2])
+        return dict(events[index_now - 2: index_now + 2])
 
     def calc_percent(self):
         now = dt_util.utcnow()
@@ -291,7 +281,32 @@ class CircadianLighting:
         percentage = a * (now_ts - h) ** 2 + k
         return percentage
 
+    @staticmethod
+    def _map(x, in_min, in_max, out_min, out_max):
+        return int((x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min)
+
     def calc_colortemp(self):
+        now: datetime = dt_util.as_local(dt_util.utcnow())
+        now_ts = now.timestamp()
+
+        if 6 < now.hour < 8:
+            start = now.replace(hour=6, minute=0, second=0)
+            relative = int((now - start).seconds / 60)
+            return self._map(relative, 0, 120, self._min_colortemp, self._max_colortemp)
+
+        if 8 < now.hour < 17:
+            start = now.replace(hour=8, minute=0, second=0)
+            relative = int((now - start).seconds / 60)
+            return self._map(relative, 0, (17-8)*60, self._max_colortemp, self._min_colortemp)
+
+        if 17 < now.hour < 20:
+            start = now.replace(hour=17, minute=0, second=0)
+            relative = int((now - start).seconds / 60)
+            return self._map(relative, 0, (20-17)*60, self._min_colortemp, self._max_colortemp)
+
+        if now.hour > 20:
+            return self._min_colortemp
+
         if self._percent > 0:
             delta = self._max_colortemp - self._min_colortemp
             percent = self._percent / 100
