@@ -309,18 +309,18 @@ class CircadianLighting:
             return self._max_colortemp
 
         # Sunset 6500 - 2500k
-        if 17 < now.hour < 20:
+        if 17 < now.hour < 18:
             start = now.replace(hour=17, minute=0, second=0)
             relative = int((now - start).seconds / 60)
-            val = self._map(relative, 0, 180,
+            val = self._map(relative, 0, 60,
                             self._max_colortemp, self._min_colortemp)
             _LOGGER.info(f"Sunset. Setting temp: {val}")
             return val
 
-        if 20 < now.hour < 22:
+        if 18 < now.hour < 22:
             start = now.replace(hour=20, minute=0, second=0)
             relative = int((now - start).seconds / 60)
-            val = self._map(relative, 0, 120, self._min_colortemp, moonlight)
+            val = self._map(relative, 0, 240, self._min_colortemp, moonlight)
             _LOGGER.info(f"Sunset to moonlight. Setting temp: {val}")
             return val
         # if self._percent > 0:

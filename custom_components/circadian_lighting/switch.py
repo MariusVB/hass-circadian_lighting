@@ -6,37 +6,23 @@ import asyncio
 import logging
 from itertools import repeat
 
-import voluptuous as vol
-
 import homeassistant.helpers.config_validation as cv
-from homeassistant.components.light import (
-    ATTR_BRIGHTNESS,
-    ATTR_COLOR_TEMP,
-    ATTR_RGB_COLOR,
-    ATTR_TRANSITION,
-    ATTR_WHITE_VALUE,
-    ATTR_XY_COLOR,
-)
+import voluptuous as vol
+from homeassistant.components.light import (ATTR_BRIGHTNESS, ATTR_COLOR_TEMP,
+                                            ATTR_RGB_COLOR, ATTR_TRANSITION,
+                                            ATTR_WHITE_VALUE, ATTR_XY_COLOR)
 from homeassistant.components.light import DOMAIN as LIGHT_DOMAIN
 from homeassistant.components.light import VALID_TRANSITION, is_on
 from homeassistant.components.switch import SwitchEntity
-from homeassistant.const import (
-    ATTR_ENTITY_ID,
-    CONF_NAME,
-    CONF_PLATFORM,
-    SERVICE_TURN_ON,
-    STATE_ON,
-)
+from homeassistant.const import (ATTR_ENTITY_ID, CONF_NAME, CONF_PLATFORM,
+                                 SERVICE_TURN_ON, STATE_ON)
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.event import async_track_state_change
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.util import slugify
-from homeassistant.util.color import (
-    color_RGB_to_xy,
-    color_temperature_kelvin_to_mired,
-    color_temperature_to_rgb,
-    color_xy_to_hs,
-)
+from homeassistant.util.color import (color_RGB_to_xy,
+                                      color_temperature_kelvin_to_mired,
+                                      color_temperature_to_rgb, color_xy_to_hs)
 
 from . import CIRCADIAN_LIGHTING_UPDATE_TOPIC, DOMAIN
 
@@ -105,7 +91,8 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
             lights_rgb=config.get(CONF_LIGHTS_RGB, []),
             lights_xy=config.get(CONF_LIGHTS_XY, []),
             lights_brightness=config.get(CONF_LIGHTS_BRIGHT, []),
-            disable_brightness_adjust=config.get(CONF_DISABLE_BRIGHTNESS_ADJUST),
+            disable_brightness_adjust=config.get(
+                CONF_DISABLE_BRIGHTNESS_ADJUST),
             min_brightness=config.get(CONF_MIN_BRIGHT),
             max_brightness=config.get(CONF_MAX_BRIGHT),
             sleep_entity=config.get(CONF_SLEEP_ENTITY),
@@ -238,8 +225,10 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
         track_kwargs = dict(hass=self.hass, action=self._state_changed)
         if self._sleep_entity is not None:
             sleep_kwargs = dict(track_kwargs, entity_ids=self._sleep_entity)
-            async_track_state_change(**sleep_kwargs, to_state=self._sleep_state)
-            async_track_state_change(**sleep_kwargs, from_state=self._sleep_state)
+            async_track_state_change(
+                **sleep_kwargs, to_state=self._sleep_state)
+            async_track_state_change(
+                **sleep_kwargs, from_state=self._sleep_state)
 
         if self._disable_entity is not None:
             async_track_state_change(
@@ -287,7 +276,7 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
 
     def _color_temperature(self):
         return (
-            self._circadian_lighting._colortemp
+            self._circadian_lighting.calc_colortemp()
             if not self._is_sleep()
             else self._sleep_colortemp
         )
@@ -354,7 +343,8 @@ class CircadianSwitch(SwitchEntity, RestoreEntity):
 
             service_data = {ATTR_ENTITY_ID: light, ATTR_TRANSITION: transition}
             if self._brightness is not None:
-                service_data[ATTR_BRIGHTNESS] = int((self._brightness / 100) * 254)
+                service_data[ATTR_BRIGHTNESS] = int(
+                    (self._brightness / 100) * 254)
 
             light_type = self._lights_types[light]
             if light_type == "ct":
