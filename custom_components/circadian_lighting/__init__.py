@@ -293,11 +293,11 @@ class CircadianLighting:
         _LOGGER.info(hour)
 
         # During night - use "starlight/moonlight"
-        if 22 < hour or 0 < hour < 6:
+        if 22 <= hour or 0 <= hour < 6:
             return moonlight
 
         # Sunrise 2500 - 6500k
-        if 6 < hour < 8:
+        if 6 <= hour < 8:
             start = now.replace(hour=6, minute=0, second=0)
             relative = int((now - start).seconds / 60)
             val = self._map(relative, 0, 120,
@@ -305,12 +305,12 @@ class CircadianLighting:
             _LOGGER.info(f"Sunrise. Setting temp: {val}")
             return val
         # Midday
-        if 8 < hour < 17:
+        if 8 <= hour < 17:
             _LOGGER.info(f"Midday. Setting temp to max: {self._max_colortemp}")
             return self._max_colortemp
 
         # Sunset 6500 - 2500k
-        if 17 < hour < 18:
+        if 17 <= hour < 18:
             start = now.replace(hour=17, minute=0, second=0)
             relative = int((now - start).seconds / 60)
             val = self._map(relative, 0, 60,
@@ -318,7 +318,7 @@ class CircadianLighting:
             _LOGGER.info(f"Sunset. Setting temp: {val}")
             return val
 
-        if 18 < hour < 22:
+        if 18 <= hour < 22:
             start = now.replace(hour=18, minute=0, second=0)
             relative = int((now - start).seconds / 60)
             val = self._map(relative, 0, 240, self._min_colortemp, moonlight)
