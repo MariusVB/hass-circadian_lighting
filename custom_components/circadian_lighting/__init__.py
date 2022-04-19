@@ -287,49 +287,56 @@ class CircadianLighting:
 
     def calc_colortemp(self):
         now: datetime = dt_util.as_local(dt_util.utcnow())
-        moonlight = 4500
+        night_light = 2500
         hour = now.hour
+        min_temp = self._min_colortemp
+        max_temp = self._max_colortemp
+        almost_sunset = min_temp + 200
         _LOGGER.info(now)
         _LOGGER.info(hour)
 
         # During night - use "starlight/moonlight"
         if 22 <= hour or 0 <= hour < 6:
-            return moonlight
+            return night_light
 
-        # Sunrise 2500 - 6500k
+        # Sunrise 2500 - 3000
         if 6 <= hour < 8:
             start = now.replace(hour=6, minute=0, second=0)
             relative = int((now - start).seconds / 60)
-            val = self._map(relative, 0, 120,
-                            self._min_colortemp, self._max_colortemp)
+            val = self._map(relative, 0, 60*2, min_temp, almost_sunset)
             _LOGGER.info(f"Sunrise. Setting temp: {val}")
             return val
         # Midday
-        if 8 <= hour < 17:
-            _LOGGER.info(f"Midday. Setting temp to max: {self._max_colortemp}")
-            return self._max_colortemp
-
-        # Sunset 6500 - 2500k
-        if 17 <= hour < 18:
-            start = now.replace(hour=17, minute=0, second=0)
+        if 8 <= hour < 15:
+            start = now.replace(hour=8, minute=0, second=0)
             relative = int((now - start).seconds / 60)
-            val = self._map(relative, 0, 60,
-                            self._max_colortemp, self._min_colortemp)
+            val = self._map(relative, 0, 7*60, almost_sunset,
+                            max_temp)
+            _LOGGER.info(f"Midday. Setting temp to: {val}")
+            return val
+
+        # Afternoon
+        if 15 <= hour < 18:
+            start = now.replace(hour=15, minute=0, second=0)
+            relative = int((now - start).seconds / 60)
+            val = self._map(relative, 0, 60*3, max_temp, almost_sunset)
+            _LOGGER.info(f"Afternoon. Setting temp to: {val}")
+            return val
+
+        # Sunset 3000 - 2500k
+        if 18 <= hour < 20:
+            start = now.replace(hour=18, minute=0, second=0)
+            relative = int((now - start).seconds / 60)
+            val = self._map(relative, 0, 60*2, almost_sunset, min_temp)
             _LOGGER.info(f"Sunset. Setting temp: {val}")
             return val
 
-        if 18 <= hour < 22:
-            start = now.replace(hour=18, minute=0, second=0)
+        if 20 <= hour < 22:
+            start = now.replace(hour=20, minute=0, second=0)
             relative = int((now - start).seconds / 60)
-            val = self._map(relative, 0, 240, self._min_colortemp, moonlight)
+            val = self._map(relative, 0, 60*2, min_temp, night_light)
             _LOGGER.info(f"Sunset to moonlight. Setting temp: {val}")
             return val
-        # if self._percent > 0:
-        #     delta = self._max_colortemp - self._min_colortemp
-        #     percent = self._percent / 100
-        #     return (delta * percent) + self._min_colortemp
-        # else:
-        #     return self._min_colortemp
 
     def calc_rgb(self):
         return color_temperature_to_rgb(self._colortemp)
