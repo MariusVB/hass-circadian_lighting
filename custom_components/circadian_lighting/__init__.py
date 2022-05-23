@@ -292,6 +292,7 @@ class CircadianLighting:
         min_temp = self._min_colortemp
         max_temp = self._max_colortemp
         almost_sunset = min_temp + 200
+        noon_temp = 5000
         _LOGGER.info(now)
         _LOGGER.info(hour)
 
@@ -300,18 +301,25 @@ class CircadianLighting:
             return night_light
 
         # Sunrise 2500 - 3000
-        if 6 <= hour < 8:
+        if 6 <= hour < 7:
             start = now.replace(hour=6, minute=0, second=0)
             relative = int((now - start).seconds / 60)
-            val = self._map(relative, 0, 60*2, min_temp, almost_sunset)
+            val = self._map(relative, 0, 60, min_temp, almost_sunset)
             _LOGGER.info(f"Sunrise. Setting temp: {val}")
+            return val
+        # Morning energizer
+        if 7 <= hour < 8:
+            start = now.replace(hour=7, minute=0, second=0)
+            relative = int((now - start).seconds / 60)
+            val = self._map(relative, 0, 60, almost_sunset,
+                            noon_temp)
+            _LOGGER.info(f"Morning energizer. Setting temp to: {val}")
             return val
         # Midday
         if 8 <= hour < 15:
             start = now.replace(hour=8, minute=0, second=0)
             relative = int((now - start).seconds / 60)
-            val = self._map(relative, 0, 7*60, almost_sunset,
-                            max_temp)
+            val = self._map(relative, 0, 7*60, noon_temp, max_temp)
             _LOGGER.info(f"Midday. Setting temp to: {val}")
             return val
 
